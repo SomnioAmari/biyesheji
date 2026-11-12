@@ -1,0 +1,22 @@
+{
+  "name": "示例书源",
+  "url": "https://www.example.com",
+  "charset": "UTF-8",
+  "searchUrl": "/search?q={{key}}",
+  "searchList": "//div[contains(@class,'book')]",
+  "searchName": ".//h3",
+  "searchAuthor": ".//p[contains(@class,'author')]",
+  "searchCover": ".//img",
+  "searchDetail": ".//a",
+  "bookUrlPattern": "/book/(\\d+)",
+  "detailName": "//h1",
+  "detailAuthor": "//div[contains(@class,'author')]",
+  "detailCover": "//div[contains(@class,'cover')]/img",
+  "detailIntro": "//div[contains(@class,'intro')]",
+  "tocUrl": "/catalog/{{bookId}}",
+  "catalogList": "//ul[contains(@class,'catalog')]/li",
+  "catalogName": ".//a",
+  "catalogUrl": ".//a",
+  "contentUrl": "{{chapterUrl}}",
+  "bookContent": "//div[@id='content']"
+}
