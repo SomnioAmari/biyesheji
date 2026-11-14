@@ -1,4 +1,4 @@
 package com.reader.vo;
 
-public record UserVO(Long id, String username, String nickname, String email) {
+public record UserVO(Long id, String username, String nickname, String email, Integer role, Integer status) {
 }

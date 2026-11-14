@@ -7,7 +7,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/reader?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
     username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:root}
+    password: ${DB_PASSWORD:10132}
     driver-class-name: com.mysql.cj.jdbc.Driver
   data:
     redis:
@@ -19,6 +19,10 @@ spring:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: Asia/Shanghai
     default-property-inclusion: non_null
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 24MB
 
 mybatis:
   configuration:
@@ -35,6 +39,9 @@ app:
     max-articles-per-source: 50
     # 信任所有 SSL 证书（部分站点证书不规范，开启后可抓取；有安全风险，默认关闭）
     trust-all-certs: false
+  upload:
+    # 封面图片本地存储目录（相对后端运行目录）
+    dir: ./uploads
   rank:
     alpha: 0.5   # 源权重系数
     beta: 0.3    # 新鲜度系数

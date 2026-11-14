@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 public class ReadingProgress {
     private Long id;
     private Long userId;
-    private Integer targetType;   // 0=文章, 1=小说
+    private Integer targetType;   // 0=文章, 1=书籍
     private Long targetId;
     private Long chapterId;
     private BigDecimal scrollPosition;

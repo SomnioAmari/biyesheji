@@ -1,6 +1,7 @@
 package com.reader.mapper;
 
 import com.reader.entity.NovelChapter;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Options;
 import org.apache.ibatis.annotations.Param;
@@ -20,13 +21,13 @@ public interface NovelChapterMapper {
     @Select("SELECT * FROM novel_chapter WHERE id = #{id}")
     NovelChapter findById(Long id);
 
-    @Insert("INSERT INTO novel_chapter(book_id, name, url, chapter_index) VALUES(#{bookId}, #{name}, #{url}, #{chapterIndex})")
+    @Insert("INSERT INTO novel_chapter(book_id, name, url, content, chapter_index) VALUES(#{bookId}, #{name}, #{url}, #{content}, #{chapterIndex})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(NovelChapter chapter);
 
-    @Insert("<script>INSERT INTO novel_chapter(book_id, name, url, chapter_index) VALUES " +
+    @Insert("<script>INSERT INTO novel_chapter(book_id, name, url, content, chapter_index) VALUES " +
             "<foreach collection='list' item='c' separator=','>" +
-            "(#{c.bookId}, #{c.name}, #{c.url}, #{c.chapterIndex})" +
+            "(#{c.bookId}, #{c.name}, #{c.url}, #{c.content}, #{c.chapterIndex})" +
             "</foreach></script>")
     int insertBatch(@Param("list") List<NovelChapter> chapters);
 
@@ -35,4 +36,7 @@ public interface NovelChapterMapper {
 
     @Select("SELECT COUNT(*) FROM novel_chapter WHERE book_id = #{bookId}")
     int countByBook(Long bookId);
+
+    @Delete("DELETE FROM novel_chapter WHERE book_id = #{bookId}")
+    int deleteByBook(Long bookId);
 }

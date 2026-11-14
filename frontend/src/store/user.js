@@ -6,6 +6,9 @@ export const useUserStore = defineStore('user', {
     token: localStorage.getItem('token') || '',
     user: JSON.parse(localStorage.getItem('user') || 'null')
   }),
+  getters: {
+    isAdmin: (state) => state.user?.role === 1
+  },
   actions: {
     async login(payload) {
       const res = await loginApi(payload)

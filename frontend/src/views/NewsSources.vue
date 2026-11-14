@@ -2,6 +2,7 @@
   <div>
     <div class="toolbar">
       <el-button type="primary" :icon="Plus" @click="openDialog()">新增新闻源</el-button>
+      <el-button :icon="MagicStick" :loading="importing" @click="importRecommended">添加推荐源</el-button>
     </div>
 
     <el-table :data="list" v-loading="loading">
@@ -58,13 +59,15 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { Plus, MagicStick } from '@element-plus/icons-vue'
 import { listNewsSources, createNewsSource, updateNewsSource, deleteNewsSource, fetchNewsSource } from '../api'
+import { RECOMMENDED_NEWS_SOURCES } from '../recommended'
 
 const list = ref([])
 const loading = ref(false)
 const dialogVisible = ref(false)
 const form = ref({})
+const importing = ref(false)
 
 async function load() {
   loading.value = true
@@ -73,6 +76,25 @@ async function load() {
     list.value = res.data
   } finally {
     loading.value = false
+  }
+}
+
+async function importRecommended() {
+  const existingUrls = new Set(list.value.map((s) => s.url))
+  const toAdd = RECOMMENDED_NEWS_SOURCES.filter((s) => !existingUrls.has(s.url))
+  if (!toAdd.length) {
+    ElMessage.info('推荐源都已添加过')
+    return
+  }
+  importing.value = true
+  try {
+    for (const s of toAdd) {
+      await createNewsSource({ type: 0, name: s.name, url: s.url, category: s.category, weight: s.weight, fetchInterval: s.fetchInterval, enabled: 1 })
+    }
+    ElMessage.success(`已添加 ${toAdd.length} 个推荐源`)
+    load()
+  } finally {
+    importing.value = false
   }
 }
 

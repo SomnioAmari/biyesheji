@@ -7,7 +7,7 @@
       <el-button :icon="Refresh" @click="load">刷新</el-button>
     </div>
 
-    <el-empty v-if="!loading && list.length === 0" description="暂无资讯，请先在「新闻源」中添加并抓取" />
+    <el-empty v-if="!loading && list.length === 0" description="暂无资讯，请先在「设置 → 新闻源」中添加并抓取" />
 
     <el-card v-for="a in list" :key="a.id" class="article-card" shadow="hover" @click="go(a.id)">
       <div class="article-title">{{ a.title }}</div>

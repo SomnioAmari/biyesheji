@@ -16,8 +16,10 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -111,12 +113,70 @@ public class RuleEngine {
             fetchUrl = chapterUrl;
         }
         fetchUrl = buildUrl(rule.getUrl(), fetchUrl);
-        Document doc = Jsoup.parse(httpFetcher.get(fetchUrl, rule.getCharset(), buildHeaders(rule)), fetchUrl);
-        Elements els = select(doc, rule.getBookContent());
-        if (els.isEmpty()) {
-            return "";
+
+        String chapterBase = fetchUrl.endsWith(".html")
+                ? fetchUrl.substring(0, fetchUrl.length() - 5) : fetchUrl;
+
+        StringBuilder result = new StringBuilder();
+        String currentUrl = fetchUrl;
+        Set<String> visited = new HashSet<>();
+        int maxPages = 30; // 安全上限，防止死循环
+        for (int page = 0; page < maxPages; page++) {
+            if (!visited.add(currentUrl)) {
+                break;
+            }
+            Document doc = Jsoup.parse(httpFetcher.get(currentUrl, rule.getCharset(), buildHeaders(rule)), currentUrl);
+            Elements els = select(doc, rule.getBookContent());
+            if (!els.isEmpty()) {
+                String text = cleanContentText(els.first().wholeText());
+                if (!text.isBlank()) {
+                    if (result.length() > 0) {
+                        result.append("\n\n");
+                    }
+                    result.append(text);
+                }
+            }
+            String next = findNextPage(doc, rule, currentUrl, chapterBase);
+            if (next == null) {
+                break;
+            }
+            currentUrl = next;
         }
-        return els.first().wholeText().trim();
+        return result.toString();
+    }
+
+    /** 去掉分页标记「第(1/3)页」等噪音文本。 */
+    private String cleanContentText(String text) {
+        String t = text.trim();
+        t = t.replaceAll("第\\s*[（(]?\\s*\\d+\\s*[/／]\\s*\\d+\\s*[)）]?\\s*页", "");
+        return t.trim();
+    }
+
+    /**
+     * 依据 contentNextPage 选择器找正文「下一页」链接。
+     * 仅当链接是同一章节的分页（形如 {chapterBase}_2.html）时才返回，避免误抓下一章。
+     */
+    private String findNextPage(Document doc, BookSourceRule rule, String currentUrl, String chapterBase) {
+        if (rule.getContentNextPage() == null || rule.getContentNextPage().isBlank()) {
+            return null;
+        }
+        Elements els = select(doc, rule.getContentNextPage());
+        if (els.isEmpty()) {
+            return null;
+        }
+        String href = els.first().attr("href").trim();
+        if (href.isEmpty() || href.startsWith("javascript:")) {
+            return null;
+        }
+        String next = absolutize(currentUrl, href);
+        if (next.equals(currentUrl)) {
+            return null;
+        }
+        if (chapterBase == null || chapterBase.isEmpty() || !next.startsWith(chapterBase + "_")) {
+            return null;
+        }
+        String suffix = next.substring(chapterBase.length() + 1);
+        return suffix.matches("\\d+\\.html") ? next : null;
     }
 
     private Map<String, String> buildHeaders(BookSourceRule rule) {

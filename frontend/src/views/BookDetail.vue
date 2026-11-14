@@ -14,7 +14,8 @@
           <p class="line">章节数：{{ detail.chapterCount }}</p>
           <p class="intro">{{ detail.intro || '暂无简介' }}</p>
           <div class="actions">
-            <el-button v-if="!detail.inShelf" type="primary" @click="addShelf">加入书架</el-button>
+            <el-button type="primary" :loading="catalogLoading" @click="startReading">开始阅读</el-button>
+            <el-button v-if="!detail.inShelf" @click="addShelf">加入书架</el-button>
             <el-button v-else disabled>已在书架</el-button>
             <el-button :loading="catalogLoading" @click="loadCatalog">查看目录</el-button>
           </div>
@@ -63,6 +64,15 @@ async function loadCatalog() {
     catalog.value = res.data
   } finally {
     catalogLoading.value = false
+  }
+}
+
+async function startReading() {
+  if (!catalog.value.length) {
+    await loadCatalog()
+  }
+  if (catalog.value.length) {
+    goChapter(catalog.value[0].id)
   }
 }
 

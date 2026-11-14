@@ -32,6 +32,8 @@ public class AuthService {
         user.setNickname(req.getNickname() == null || req.getNickname().isBlank()
                 ? req.getUsername() : req.getNickname());
         user.setEmail(req.getEmail());
+        user.setRole(0);
+        user.setStatus(1);
         userMapper.insert(user);
         return toVO(user);
     }
@@ -46,6 +48,6 @@ public class AuthService {
     }
 
     private UserVO toVO(User u) {
-        return new UserVO(u.getId(), u.getUsername(), u.getNickname(), u.getEmail());
+        return new UserVO(u.getId(), u.getUsername(), u.getNickname(), u.getEmail(), u.getRole(), u.getStatus());
     }
 }

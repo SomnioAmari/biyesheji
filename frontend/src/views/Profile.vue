@@ -6,6 +6,7 @@
         <el-descriptions-item label="用户名">{{ user?.username }}</el-descriptions-item>
         <el-descriptions-item label="昵称">{{ user?.nickname || '-' }}</el-descriptions-item>
         <el-descriptions-item label="邮箱">{{ user?.email || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="角色">{{ user?.role === 1 ? '管理员' : '普通用户' }}</el-descriptions-item>
       </el-descriptions>
       <div class="actions">
         <el-button type="danger" plain @click="logout">退出登录</el-button>

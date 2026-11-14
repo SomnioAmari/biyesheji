@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS `user` (
   `password`   VARCHAR(100) NOT NULL COMMENT 'BCrypt 密文',
   `nickname`   VARCHAR(50)  DEFAULT NULL COMMENT '昵称',
   `email`      VARCHAR(100) DEFAULT NULL COMMENT '邮箱',
+  `role`       TINYINT      NOT NULL DEFAULT 0 COMMENT '0=普通用户, 1=管理员',
+  `status`     TINYINT      NOT NULL DEFAULT 1 COMMENT '1=正常, 0=禁用',
   `created_at` DATETIME     DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
@@ -64,7 +66,7 @@ CREATE TABLE IF NOT EXISTS `article` (
   KEY `idx_published` (`published_at`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='新闻文章表';
 
--- 小说书源表
+-- 书源表
 CREATE TABLE IF NOT EXISTS `book_source` (
   `id`         BIGINT       NOT NULL AUTO_INCREMENT,
   `user_id`    BIGINT       NOT NULL,
@@ -76,39 +78,47 @@ CREATE TABLE IF NOT EXISTS `book_source` (
   `updated_at` DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_user` (`user_id`)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='小说书源表';
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='书源表';
 
--- 小说书籍表
+-- 书籍表
 CREATE TABLE IF NOT EXISTS `novel_book` (
-  `id`         BIGINT       NOT NULL AUTO_INCREMENT,
-  `source_id`  BIGINT       NOT NULL COMMENT '所属书源',
-  `name`       VARCHAR(200) NOT NULL,
-  `author`     VARCHAR(100) DEFAULT NULL,
-  `cover`      VARCHAR(255) DEFAULT NULL,
-  `intro`      TEXT,
-  `url`        VARCHAR(500) DEFAULT NULL COMMENT '详情页地址',
-  `toc_url`    VARCHAR(500) DEFAULT NULL COMMENT '目录页地址(规则引擎解析得到)',
-  `status`     VARCHAR(20)  DEFAULT NULL COMMENT '连载/完结',
-  `created_at` DATETIME     DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `id`            BIGINT       NOT NULL AUTO_INCREMENT,
+  `source_id`     BIGINT       DEFAULT NULL COMMENT '所属书源(书源书籍)；上传书籍为空',
+  `uploader_id`   BIGINT       DEFAULT NULL COMMENT '上传者(上传书籍)',
+  `name`          VARCHAR(200) NOT NULL,
+  `author`        VARCHAR(100) DEFAULT NULL,
+  `cover`         VARCHAR(255) DEFAULT NULL,
+  `intro`         TEXT,
+  `category`      VARCHAR(50)  DEFAULT NULL COMMENT '分类',
+  `url`           VARCHAR(500) DEFAULT NULL COMMENT '详情页地址',
+  `toc_url`       VARCHAR(500) DEFAULT NULL COMMENT '目录页地址(规则引擎解析得到)',
+  `status`        VARCHAR(20)  DEFAULT NULL COMMENT '连载/完结',
+  `review_status` TINYINT      NOT NULL DEFAULT 1 COMMENT '0=待审核, 1=已通过, 2=已拒绝',
+  `review_reason` VARCHAR(500) DEFAULT NULL COMMENT '驳回原因',
+  `reviewer_id`   BIGINT       DEFAULT NULL COMMENT '审核人',
+  `reviewed_at`   DATETIME     DEFAULT NULL COMMENT '审核时间',
+  `created_at`    DATETIME     DEFAULT CURRENT_TIMESTAMP,
+  `updated_at`    DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `idx_source` (`source_id`)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='小说书籍表';
+  KEY `idx_source` (`source_id`),
+  KEY `idx_uploader` (`uploader_id`),
+  KEY `idx_review` (`review_status`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='书籍表';
 
--- 小说章节表（按需抓取后缓存正文）
+-- 章节表（按需抓取后缓存正文）
 CREATE TABLE IF NOT EXISTS `novel_chapter` (
   `id`            BIGINT       NOT NULL AUTO_INCREMENT,
   `book_id`       BIGINT       NOT NULL,
   `name`          VARCHAR(255) NOT NULL COMMENT '章节名',
-  `url`           VARCHAR(500) NOT NULL COMMENT '章节链接',
+  `url`           VARCHAR(500) DEFAULT NULL COMMENT '章节链接（上传书籍为空）',
   `content`       LONGTEXT     COMMENT '清洗后正文',
   `chapter_index` INT          NOT NULL DEFAULT 0 COMMENT '排序序号',
   `created_at`    DATETIME     DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_book` (`book_id`)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='小说章节表';
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='章节表';
 
--- 书架表（小说专属收藏）
+-- 书架表（书籍专属收藏）
 CREATE TABLE IF NOT EXISTS `bookshelf` (
   `id`         BIGINT   NOT NULL AUTO_INCREMENT,
   `user_id`    BIGINT   NOT NULL,
@@ -129,13 +139,13 @@ CREATE TABLE IF NOT EXISTS `article_favorite` (
   UNIQUE KEY `uk_user_article` (`user_id`, `article_id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='新闻收藏表';
 
--- 阅读进度表（通用：0=文章, 1=小说）
+-- 阅读进度表（通用：0=文章, 1=书籍）
 CREATE TABLE IF NOT EXISTS `reading_progress` (
   `id`              BIGINT        NOT NULL AUTO_INCREMENT,
   `user_id`         BIGINT        NOT NULL,
-  `target_type`     TINYINT       NOT NULL COMMENT '0=文章, 1=小说',
+  `target_type`     TINYINT       NOT NULL COMMENT '0=文章, 1=书籍',
   `target_id`       BIGINT        NOT NULL,
-  `chapter_id`      BIGINT        DEFAULT NULL COMMENT '小说章节(文章为空)',
+  `chapter_id`      BIGINT        DEFAULT NULL COMMENT '章节(文章为空)',
   `scroll_position` DECIMAL(10,4) DEFAULT NULL COMMENT '文章滚动百分比(0~1)',
   `last_read_at`    DATETIME      DEFAULT CURRENT_TIMESTAMP,
   `updated_at`      DATETIME      DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -147,7 +157,7 @@ CREATE TABLE IF NOT EXISTS `reading_progress` (
 CREATE TABLE IF NOT EXISTS `user_behavior` (
   `id`             BIGINT   NOT NULL AUTO_INCREMENT,
   `user_id`        BIGINT   NOT NULL,
-  `target_type`    TINYINT  NOT NULL COMMENT '0=文章, 1=小说',
+  `target_type`    TINYINT  NOT NULL COMMENT '0=文章, 1=书籍',
   `target_id`      BIGINT   NOT NULL,
   `click_count`    INT      NOT NULL DEFAULT 0,
   `read_duration`  INT      NOT NULL DEFAULT 0 COMMENT '阅读时长(秒)',

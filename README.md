@@ -2,10 +2,10 @@
 
 基于 Spring Boot + MyBatis + MySQL + Redis 与 Vue 3 + Element Plus 的前后端分离网站。
 
-新闻与小说两个独立板块：
+新闻与书籍两个独立板块：
 
 - **新闻板块**：用户配置 RSS / 网页源，系统定时批量抓取、正文清洗后写入 MySQL 并缓存到 Redis，主页按「源权重 + 新鲜度 + 阅读行为」个性化排序展示。
-- **小说板块**：按 legado 思路做网页复现，导入书源规则后**只搜索、不推荐**，按书名搜索 → 加入书架 → 目录 → 章节阅读。
+- **书籍板块**：按 legado 思路做网页复现，导入书源规则后**只搜索、不推荐**，按书名搜索 → 加入书架 → 目录 → 章节阅读。
 
 纯净阅读由**后端正文清洗**保证（正文密度打分算法 + 白名单标签），前端只做展示。
 
@@ -113,7 +113,7 @@ server {
 
 ## 书源规则说明
 
-小说书源规则是一个 JSON，字段语义（见 `docs/书源规则示例.json`）：
+书源规则是一个 JSON，字段语义（见 `docs/书源规则示例.json`）：
 
 | 字段 | 含义 |
 | --- | --- |
@@ -155,6 +155,6 @@ score = α·源权重 + β·新鲜度(时间衰减) + γ·行为分(点击/读�
 | 新闻源 | `GET/POST/PUT/DELETE /api/news-sources`、`POST /api/news-sources/{id}/fetch` |
 | 资讯 | `GET /api/articles`、`GET /api/articles/{id}`、`POST/DELETE /api/articles/{id}/favorite` |
 | 书源 | `GET/POST/PUT/DELETE /api/book-sources`、`POST /api/book-sources/import`（粘贴导入）、`POST /api/book-sources/import-url`（URL 导入） |
-| 小说 | `GET /api/novel/search`、`/detail`、`/{bookId}`、`/{bookId}/catalog`、`/{bookId}/{chapterId}` |
+| 书籍 | `GET /api/novel/search`、`/detail`、`/{bookId}`、`/{bookId}/catalog`、`/{bookId}/{chapterId}` |
 | 书架 | `GET/POST/DELETE /api/bookshelf` |
 | 进度 | `GET/PUT /api/progress` |

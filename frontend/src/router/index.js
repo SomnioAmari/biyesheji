@@ -5,13 +5,18 @@ const routes = [
   { path: '/register', component: () => import('../views/Register.vue'), meta: { public: true } },
   { path: '/', component: () => import('../views/Home.vue') },
   { path: '/article/:id', component: () => import('../views/ArticleDetail.vue') },
-  { path: '/news-sources', component: () => import('../views/NewsSources.vue') },
+  { path: '/settings', component: () => import('../views/Settings.vue') },
   { path: '/novel/search', component: () => import('../views/NovelSearch.vue') },
+  { path: '/novel/mine', component: () => import('../views/Upload.vue') },
   { path: '/novel/:bookId', component: () => import('../views/BookDetail.vue') },
   { path: '/novel/:bookId/:chapterId', component: () => import('../views/ChapterReader.vue') },
   { path: '/bookshelf', component: () => import('../views/Bookshelf.vue') },
-  { path: '/book-sources', component: () => import('../views/BookSources.vue') },
-  { path: '/profile', component: () => import('../views/Profile.vue') }
+  { path: '/admin/review', component: () => import('../views/AdminReview.vue'), meta: { requiresAdmin: true } },
+  { path: '/admin/users', component: () => import('../views/AdminUsers.vue'), meta: { requiresAdmin: true } },
+  { path: '/profile', component: () => import('../views/Profile.vue') },
+  // 兼容旧地址
+  { path: '/news-sources', redirect: '/settings?tab=news' },
+  { path: '/book-sources', redirect: '/settings?tab=book' }
 ]
 
 const router = createRouter({
@@ -20,8 +25,15 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
-  if (!to.meta.public && !localStorage.getItem('token')) {
+  const token = localStorage.getItem('token')
+  if (!to.meta.public && !token) {
     return '/login'
+  }
+  if (to.meta.requiresAdmin) {
+    const user = JSON.parse(localStorage.getItem('user') || 'null')
+    if (!user || user.role !== 1) {
+      return '/'
+    }
   }
 })
 

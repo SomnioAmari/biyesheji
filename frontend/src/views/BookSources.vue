@@ -3,6 +3,7 @@
     <div class="toolbar">
       <el-button type="primary" :icon="DocumentAdd" @click="openPaste">粘贴导入</el-button>
       <el-button type="primary" :icon="Link" plain @click="openUrl">URL 导入</el-button>
+      <el-button :icon="MagicStick" plain :loading="importing" @click="importRecommended">导入推荐书源</el-button>
       <span class="tip">支持导入 legado（开源阅读）书源与本系统规则，单个或合集均可</span>
     </div>
 
@@ -65,11 +66,12 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { DocumentAdd, Link } from '@element-plus/icons-vue'
+import { DocumentAdd, Link, MagicStick } from '@element-plus/icons-vue'
 import {
   listBookSources, updateBookSource, deleteBookSource,
   importBookSources, importBookSourcesByUrl
 } from '../api'
+import { RECOMMENDED_BOOK_SOURCES } from '../recommended'
 
 const list = ref([])
 const loading = ref(false)
@@ -117,6 +119,23 @@ async function doPasteImport() {
     const res = await importBookSources({ ruleJson: pasteJson.value })
     ElMessage.success(`成功导入 ${res.data.length} 个书源`)
     pasteVisible.value = false
+    load()
+  } finally {
+    importing.value = false
+  }
+}
+
+async function importRecommended() {
+  const existingUrls = new Set(list.value.map((s) => s.url))
+  const toImport = RECOMMENDED_BOOK_SOURCES.filter((s) => !existingUrls.has(s.url))
+  if (!toImport.length) {
+    ElMessage.info('推荐书源都已导入过')
+    return
+  }
+  importing.value = true
+  try {
+    const res = await importBookSources({ ruleJson: JSON.stringify(toImport) })
+    ElMessage.success(`成功导入 ${res.data.length} 个推荐书源`)
     load()
   } finally {
     importing.value = false

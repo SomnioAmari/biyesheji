@@ -1,6 +1,7 @@
 package com.reader.service;
 
 import com.reader.common.BizException;
+import com.reader.common.UserContext;
 import com.reader.entity.BookSource;
 import com.reader.entity.Bookshelf;
 import com.reader.entity.NovelBook;
@@ -19,6 +20,7 @@ import com.reader.vo.BookDetailVO;
 import com.reader.vo.BookshelfVO;
 import com.reader.vo.ChapterContentVO;
 import com.reader.vo.ChapterVO;
+import com.reader.vo.LibraryBookVO;
 import com.reader.vo.SearchBookVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +37,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
- * 小说板块：书源规则 + 搜索（无推荐）+ 详情/目录/章节 + 书架。
+ * 书籍板块：内部书库搜索 + 书源规则搜索（无推荐）+ 详情/目录/章节 + 书架。
  */
 @Slf4j
 @Service
@@ -51,7 +53,19 @@ public class NovelService {
     private final ReadingProgressMapper progressMapper;
     private final RuleEngine ruleEngine;
 
-    public List<SearchBookVO> search(Long userId, String keyword) {
+    // ---------- 内部书库搜索（已审核通过的上传书籍） ----------
+
+    public List<LibraryBookVO> searchLibrary(String keyword) {
+        return bookMapper.searchLibrary(keyword == null ? null : keyword.trim()).stream()
+                .map(b -> new LibraryBookVO(b.getId(), b.getName(), b.getAuthor(), b.getCover(), b.getIntro(),
+                        b.getCategory(), b.getReviewStatus(), b.getReviewReason(),
+                        chapterMapper.countByBook(b.getId()), b.getCreatedAt()))
+                .toList();
+    }
+
+    // ---------- 自定义书源搜索（无推荐） ----------
+
+    public List<SearchBookVO> searchSources(Long userId, String keyword) {
         List<BookSource> sources = bookSourceMapper.findByUser(userId).stream()
                 .filter(s -> s.getEnabled() != null && s.getEnabled() == 1)
                 .toList();
@@ -92,6 +106,8 @@ public class NovelService {
         }
     }
 
+    // ---------- 详情 / 目录 / 章节 ----------
+
     public BookDetailVO detail(Long userId, Long sourceId, String bookUrl) {
         BookSource source = requireOwnedSource(userId, sourceId);
         RuleBookDetail d = ruleEngine.detail(source, bookUrl);
@@ -100,12 +116,14 @@ public class NovelService {
         if (book == null) {
             book = new NovelBook();
             book.setSourceId(sourceId);
+            book.setUploaderId(null);
             book.setName(d.name());
             book.setAuthor(d.author());
             book.setCover(d.cover());
             book.setIntro(d.intro());
             book.setUrl(bookUrl);
             book.setTocUrl(d.tocUrl());
+            book.setReviewStatus(1);
             bookMapper.insert(book);
         } else {
             book.setCover(d.cover());
@@ -121,8 +139,7 @@ public class NovelService {
     }
 
     public BookDetailVO getDetail(Long userId, Long bookId) {
-        NovelBook book = requireBook(bookId);
-        requireOwnedSource(userId, book.getSourceId());
+        NovelBook book = requireReadableBook(userId, bookId);
         boolean inShelf = bookshelfMapper.findByUserAndBook(userId, bookId) != null;
         int chapterCount = chapterMapper.countByBook(bookId);
         return new BookDetailVO(book.getId(), book.getName(), book.getAuthor(), book.getCover(),
@@ -130,11 +147,10 @@ public class NovelService {
     }
 
     public List<ChapterVO> catalog(Long userId, Long bookId) {
-        NovelBook book = requireBook(bookId);
-        requireOwnedSource(userId, book.getSourceId());
+        NovelBook book = requireReadableBook(userId, bookId);
 
         List<NovelChapter> existing = chapterMapper.findByBook(bookId);
-        if (!existing.isEmpty()) {
+        if (!existing.isEmpty() || book.getSourceId() == null) {
             return existing.stream().map(c -> new ChapterVO(c.getId(), c.getName(), c.getChapterIndex())).toList();
         }
 
@@ -150,7 +166,6 @@ public class NovelService {
             chapter.setChapterIndex(index++);
             chapters.add(chapter);
         }
-        // 批量插入，避免上千章节逐条 insert 过慢
         int batchSize = 500;
         for (int i = 0; i < chapters.size(); i += batchSize) {
             chapterMapper.insertBatch(new ArrayList<>(chapters.subList(i, Math.min(i + batchSize, chapters.size()))));
@@ -160,14 +175,13 @@ public class NovelService {
     }
 
     public ChapterContentVO chapterContent(Long userId, Long bookId, Long chapterId) {
-        NovelBook book = requireBook(bookId);
-        requireOwnedSource(userId, book.getSourceId());
+        NovelBook book = requireReadableBook(userId, bookId);
 
         NovelChapter chapter = chapterMapper.findById(chapterId);
         if (chapter == null || !chapter.getBookId().equals(bookId)) {
             throw new BizException(404, "章节不存在");
         }
-        if (chapter.getContent() == null || chapter.getContent().isBlank()) {
+        if ((chapter.getContent() == null || chapter.getContent().isBlank()) && book.getSourceId() != null) {
             BookSource source = bookSourceMapper.findById(book.getSourceId());
             String content = ruleEngine.content(source, chapter.getUrl());
             chapterMapper.updateContent(chapterId, content);
@@ -188,11 +202,14 @@ public class NovelService {
                 break;
             }
         }
-        return new ChapterContentVO(chapterId, chapter.getName(), chapter.getContent(), prev, next);
+        return new ChapterContentVO(chapterId, chapter.getName(),
+                chapter.getContent() == null ? "" : chapter.getContent(), prev, next);
     }
 
+    // ---------- 书架 ----------
+
     public void addToShelf(Long userId, Long bookId) {
-        requireBook(bookId);
+        requireReadableBook(userId, bookId);
         if (bookshelfMapper.findByUserAndBook(userId, bookId) != null) {
             return;
         }
@@ -236,11 +253,35 @@ public class NovelService {
         return vos;
     }
 
+    // ---------- 权限 ----------
+
     private NovelBook requireBook(Long bookId) {
         NovelBook book = bookMapper.findById(bookId);
         if (book == null) {
             throw new BizException(404, "书籍不存在");
         }
+        return book;
+    }
+
+    /**
+     * 内部上传书籍：审核通过所有人可见；待审核/驳回仅上传者与管理员可见。
+     * 书源书籍：仅所属书源拥有者可读。
+     */
+    private NovelBook requireReadableBook(Long userId, Long bookId) {
+        NovelBook book = requireBook(bookId);
+        if (book.getSourceId() == null) {
+            if (book.getReviewStatus() != null && book.getReviewStatus() == 1) {
+                return book;
+            }
+            if (userId.equals(book.getUploaderId())) {
+                return book;
+            }
+            if (UserContext.role() != null && UserContext.role() == 1) {
+                return book;
+            }
+            throw new BizException(403, "该作品尚未通过审核");
+        }
+        requireOwnedSource(userId, book.getSourceId());
         return book;
     }
 

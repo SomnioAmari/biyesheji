@@ -43,6 +43,7 @@ public class BookSourceRule {
     // 正文
     private String contentUrl;     // 模板，支持 {{chapterUrl}}
     private String bookContent;    // 正文选择器
+    private String contentNextPage; // 正文「下一页」链接选择器（可选，用于章节内分页）
 
     // 文本字段的提取方式（legado 转换后使用）：null 或 text = 文本，title/alt/html/ownText/textNodes
     private String searchNameType;

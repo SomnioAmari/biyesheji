@@ -11,6 +11,8 @@ public class User {
     private String password;
     private String nickname;
     private String email;
+    private Integer role;        // 0=普通用户, 1=管理员
+    private Integer status;      // 1=正常, 0=禁用
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
