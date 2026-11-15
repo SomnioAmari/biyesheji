@@ -25,3 +25,8 @@ ALTER TABLE `novel_book`
 -- 3) novel_chapter 表：url 允许为空（上传书籍的章节无外部链接）
 ALTER TABLE `novel_chapter`
   MODIFY COLUMN `url` VARCHAR(500) DEFAULT NULL COMMENT '章节链接（上传书籍为空）';
+
+-- 4) article 表：去重键改为 (source_id, url_hash)，修复多用户订阅同一源时互相去重导致入库 0 条
+ALTER TABLE `article`
+  DROP INDEX `uk_url_hash`,
+  ADD UNIQUE KEY `uk_source_url` (`source_id`, `url_hash`);

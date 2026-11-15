@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS `article` (
   `fetched_at`   DATETIME     DEFAULT CURRENT_TIMESTAMP,
   `created_at`   DATETIME     DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_url_hash` (`url_hash`),
+  UNIQUE KEY `uk_source_url` (`source_id`, `url_hash`),
   KEY `idx_source` (`source_id`),
   KEY `idx_published` (`published_at`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='新闻文章表';

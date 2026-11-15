@@ -6,14 +6,35 @@
       <el-button type="primary" :loading="loading" @click="search">搜索</el-button>
     </div>
 
-    <!-- 内部书库结果 -->
-    <template v-if="librarySearched">
-      <div v-if="libraryResults.length" class="section">
+    <!-- 未搜索时的推荐书籍 -->
+    <div v-if="!searched" class="section">
+      <div class="section-title">
+        <el-tag type="success" size="small">推荐书籍</el-tag>
+        <span class="count">本地书库最新收录</span>
+      </div>
+      <el-empty v-if="!loading && !recommended.length" description="本地书库暂无已审核通过的书籍" :image-size="80" />
+      <div v-else class="result-grid">
+        <el-card v-for="r in recommended" :key="'rec' + r.bookId" class="book-card" shadow="hover"
+          @click="goLibrary(r.bookId)">
+          <el-image :src="r.cover" fit="cover" class="book-cover">
+            <template #error><div class="cover-fallback">{{ r.name?.charAt(0) }}</div></template>
+          </el-image>
+          <div class="book-name" :title="r.name">{{ r.name }}</div>
+          <div class="book-author">{{ r.author || '未知作者' }}</div>
+          <div class="book-meta">{{ r.category || '未分类' }} · {{ r.chapterCount }}章</div>
+        </el-card>
+      </div>
+    </div>
+
+    <!-- 搜索后：内部书库结果 -->
+    <template v-if="searched">
+      <div class="section">
         <div class="section-title">
           <el-tag type="success" size="small">内部书库</el-tag>
           <span class="count">共 {{ libraryResults.length }} 本</span>
         </div>
-        <div class="result-grid">
+        <el-empty v-if="!libraryResults.length" description="内部书库没有找到相关书籍" :image-size="80" />
+        <div v-else class="result-grid">
           <el-card v-for="r in libraryResults" :key="'l' + r.bookId" class="book-card" shadow="hover"
             @click="goLibrary(r.bookId)">
             <el-image :src="r.cover" fit="cover" class="book-cover">
@@ -26,14 +47,13 @@
         </div>
       </div>
 
-      <div v-else class="empty-prompt">
-        <el-empty description="内部书库没有找到相关书籍" :image-size="80" />
-        <div class="prompt-actions">
-          <el-button type="primary" :loading="sourceLoading" @click="searchSources">
-            使用自定义书源搜索
-          </el-button>
-        </div>
-        <div class="prompt-tip">也支持先在「设置 → 书源」里导入书源，再按书源聚合搜索</div>
+      <!-- 书源搜索入口（始终可见，本地库没找到想要的也能主动搜书源） -->
+      <div class="source-entry">
+        <el-button type="warning" plain :loading="sourceLoading" @click="searchSources">
+          {{ sourceSearched ? '重新按书源搜索' : '使用自定义书源搜索' }}
+        </el-button>
+        <span v-if="sourcesCount === 0" class="source-entry-tip">暂无书源，请先在「设置 → 书源」导入</span>
+        <span v-else class="source-entry-tip">内部书库没有想要的？可以再按你导入的书源搜一遍</span>
       </div>
     </template>
 
@@ -57,8 +77,6 @@
         </div>
       </div>
     </template>
-
-    <el-empty v-if="!searched" description="输入关键词搜索内部书库，搜不到可再按自定义书源搜索" />
   </div>
 </template>
 
@@ -71,7 +89,7 @@ const router = useRouter()
 const keyword = ref('')
 const searched = ref(false)
 const loading = ref(false)
-const librarySearched = ref(false)
+const recommended = ref([])
 const libraryResults = ref([])
 const sourceSearched = ref(false)
 const sourceLoading = ref(false)
@@ -88,7 +106,6 @@ async function search() {
   try {
     const res = await searchLibrary(kw)
     libraryResults.value = res.data
-    librarySearched.value = true
   } finally {
     loading.value = false
   }
@@ -107,6 +124,15 @@ async function searchSources() {
   }
 }
 
+async function loadRecommended() {
+  try {
+    const res = await searchLibrary('')
+    recommended.value = res.data
+  } catch (e) {
+    recommended.value = []
+  }
+}
+
 function goLibrary(bookId) {
   router.push(`/novel/${bookId}`)
 }
@@ -116,6 +142,7 @@ function goSource(r) {
 }
 
 onMounted(async () => {
+  loadRecommended()
   try {
     const res = await listBookSources()
     sourcesCount.value = res.data.length
@@ -141,6 +168,20 @@ onMounted(async () => {
   margin-bottom: 12px;
 }
 .count {
+  color: #909399;
+  font-size: 13px;
+}
+.source-entry {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0 8px;
+  padding: 12px 16px;
+  background: #fdf6ec;
+  border: 1px dashed #f0c27a;
+  border-radius: 8px;
+}
+.source-entry-tip {
   color: #909399;
   font-size: 13px;
 }
@@ -190,17 +231,5 @@ onMounted(async () => {
   color: #e6a23c;
   font-size: 12px;
   margin-top: 4px;
-}
-.empty-prompt {
-  text-align: center;
-  padding: 20px 0;
-}
-.prompt-actions {
-  margin-top: 8px;
-}
-.prompt-tip {
-  margin-top: 12px;
-  color: #c0c4cc;
-  font-size: 13px;
 }
 </style>

@@ -5,8 +5,8 @@ export const RECOMMENDED_NEWS_SOURCES = [
   { name: '少数派', url: 'https://sspai.com/feed', category: '科技数码', weight: 5, fetchInterval: 60 },
   { name: 'Solidot', url: 'https://www.solidot.org/index.rss', category: '科技新闻', weight: 5, fetchInterval: 60 },
   { name: '阮一峰的网络日志', url: 'https://www.ruanyifeng.com/blog/atom.xml', category: '技术博客', weight: 5, fetchInterval: 120 },
-  { name: 'V2EX', url: 'https://www.v2ex.com/index.xml', category: '技术社区', weight: 4, fetchInterval: 60 },
-  { name: 'BBC中文', url: 'https://feeds.bbci.co.uk/zhongwen/simp/rss.xml', category: '国际新闻', weight: 4, fetchInterval: 120 }
+  { name: '博客园', url: 'https://www.cnblogs.com/rss', category: '技术社区', weight: 4, fetchInterval: 60 },
+  { name: '月光博客', url: 'https://www.williamlong.info/rss.xml', category: '互联网观察', weight: 4, fetchInterval: 120 }
 ]
 
 // 第八中文网 CMS（第八中文网 / 新笔趣阁 同款结构），UTF-8、无需登录、无反爬验证码。

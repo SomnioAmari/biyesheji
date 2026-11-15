@@ -184,7 +184,7 @@ public class NewsFetchService {
             return false;
         }
         String hash = sha256(url);
-        if (articleMapper.findByUrlHash(hash) != null) {
+        if (articleMapper.findBySourceAndUrlHash(source.getId(), hash) != null) {
             return false;
         }
         Article article = new Article();

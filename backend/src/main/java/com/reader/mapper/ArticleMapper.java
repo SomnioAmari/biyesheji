@@ -13,8 +13,8 @@ public interface ArticleMapper {
     @Select("SELECT * FROM article WHERE id = #{id}")
     Article findById(Long id);
 
-    @Select("SELECT * FROM article WHERE url_hash = #{hash}")
-    Article findByUrlHash(String hash);
+    @Select("SELECT * FROM article WHERE source_id = #{sourceId} AND url_hash = #{urlHash}")
+    Article findBySourceAndUrlHash(@Param("sourceId") Long sourceId, @Param("urlHash") String urlHash);
 
     @Insert("INSERT INTO article(source_id, title, author, source_name, url, url_hash, summary, content, cover, published_at) " +
             "VALUES(#{sourceId}, #{title}, #{author}, #{sourceName}, #{url}, #{urlHash}, #{summary}, #{content}, #{cover}, #{publishedAt})")

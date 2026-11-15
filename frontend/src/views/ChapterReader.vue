@@ -5,14 +5,19 @@
         <el-icon><ArrowLeft /></el-icon> 目录
       </el-button>
       <div class="chapter-title" :title="content.name">{{ content.name }}</div>
-      <el-button link @click="settingsVisible = true">
-        <el-icon><Setting /></el-icon> 设置
-      </el-button>
+      <div class="top-actions">
+        <el-button link @click="toggleTts">
+          <el-icon><Headset /></el-icon> {{ isSpeaking ? '停止' : '朗读' }}
+        </el-button>
+        <el-button link @click="settingsVisible = true">
+          <el-icon><Setting /></el-icon> 设置
+        </el-button>
+      </div>
     </div>
 
     <div class="reader-body" :style="{ maxWidth: widthValue }">
       <div class="chapter-content" :style="contentStyle">
-        <p v-for="(p, i) in currentParagraphs" :key="i" :style="{ marginBottom: settings.paragraphSpacing + 'em' }">{{ p }}</p>
+        <p v-for="(p, i) in currentParagraphs" :key="i" :class="{ 'is-reading': i === activePara }" :style="{ marginBottom: settings.paragraphSpacing + 'em' }">{{ p }}</p>
       </div>
 
       <div v-if="totalPages > 1" class="page-nav">
@@ -85,20 +90,44 @@
         </div>
       </div>
     </el-drawer>
+
+    <TtsBar :now-text="nowText" />
   </div>
 </template>
 
 <script setup>
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getChapterContent, reportProgress } from '../api'
-import { ArrowLeft, Setting } from '@element-plus/icons-vue'
+import { ArrowLeft, Setting, Headset } from '@element-plus/icons-vue'
+import { useTts } from '../composables/useTts'
+import TtsBar from '../components/TtsBar.vue'
 
 const route = useRoute()
 const router = useRouter()
 const bookId = Number(route.params.bookId)
 const content = ref(null)
 const settingsVisible = ref(false)
+
+const { isSpeaking, speak, stop } = useTts()
+const activePara = ref(-1)
+const nowText = ref('')
+
+function toggleTts() {
+  if (isSpeaking.value) {
+    stop()
+    activePara.value = -1
+    nowText.value = ''
+    return
+  }
+  activePara.value = -1
+  nowText.value = ''
+  const text = currentParagraphs.value.join('\n')
+  speak(text, (chunk) => {
+    activePara.value = chunk.paraIndex
+    nowText.value = chunk.text
+  })
+}
 
 const themes = [
   { key: 'white', name: '白色', bg: '#ffffff', color: '#303133' },
@@ -185,6 +214,9 @@ const currentParagraphs = computed(() => pages.value[currentPage.value] || [])
 
 function goPage(p) {
   if (p < 0 || p >= totalPages.value) return
+  stop()
+  activePara.value = -1
+  nowText.value = ''
   currentPage.value = p
   window.scrollTo(0, 0)
 }
@@ -217,6 +249,9 @@ function onCustomColor() {
 }
 
 async function load(chapterId) {
+  stop()
+  activePara.value = -1
+  nowText.value = ''
   const res = await getChapterContent(bookId, chapterId)
   content.value = res.data
   currentPage.value = 0
@@ -244,6 +279,8 @@ function isDark(hex) {
 watch(() => route.params.chapterId, (id) => {
   if (id) load(id)
 }, { immediate: true })
+
+onBeforeUnmount(() => stop())
 </script>
 
 <style scoped>
@@ -281,6 +318,16 @@ watch(() => route.params.chapterId, (id) => {
 .chapter-content p {
   text-align: justify;
   word-break: break-word;
+}
+.chapter-content p.is-reading {
+  background: rgba(64, 158, 255, 0.16);
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 .chapter-nav {
   margin-top: 32px;

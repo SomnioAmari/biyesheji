@@ -7,6 +7,10 @@
         <el-tag size="small" type="info">{{ article.sourceName }}</el-tag>
         <span>{{ article.publishedAt }}</span>
         <a v-if="article.url" :href="article.url" target="_blank" rel="noopener">查看原文</a>
+        <div class="meta-spacer" />
+        <el-button size="small" type="primary" plain @click="toggleTts">
+          <el-icon><Headset /></el-icon> {{ isSpeaking ? '停止朗读' : '朗读' }}
+        </el-button>
       </div>
       <el-divider />
       <div class="detail-content" v-html="article.content || '<p>暂无正文</p>'"></div>
@@ -16,17 +20,38 @@
         </el-button>
       </div>
     </el-card>
+
+    <TtsBar :now-text="currentText" />
   </div>
 </template>
 
 <script setup>
 import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import { Headset } from '@element-plus/icons-vue'
 import { getArticle, favoriteArticle, unfavoriteArticle, reportProgress } from '../api'
+import { useTts, htmlToPlainText } from '../composables/useTts'
+import TtsBar from '../components/TtsBar.vue'
 
 const route = useRoute()
 const article = ref(null)
 const scrollPos = ref(0)
+
+const { isSpeaking, speak, stop } = useTts()
+const currentText = ref('')
+
+function toggleTts() {
+  if (isSpeaking.value) {
+    stop()
+    currentText.value = ''
+    return
+  }
+  currentText.value = ''
+  const text = htmlToPlainText(article.value?.content)
+  speak(text, (chunk) => {
+    currentText.value = chunk.text.length > 40 ? chunk.text.slice(0, 40) + '…' : chunk.text
+  })
+}
 
 async function load() {
   const res = await getArticle(route.params.id)
@@ -67,6 +92,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  stop()
   saveProgress()
   window.removeEventListener('scroll', onScroll)
 })
@@ -98,5 +124,8 @@ onBeforeUnmount(() => {
 }
 .detail-footer {
   margin-top: 24px;
+}
+.meta-spacer {
+  flex: 1;
 }
 </style>
