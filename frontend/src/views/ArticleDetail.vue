@@ -101,6 +101,9 @@ onBeforeUnmount(() => {
 <style scoped>
 .detail-card {
   padding: 10px 30px;
+  background: #fff;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 .detail-title {
   font-size: 24px;

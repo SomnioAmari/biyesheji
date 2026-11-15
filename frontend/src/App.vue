@@ -104,14 +104,21 @@ function logout() {
 <style>
 body {
   margin: 0;
-  background: #f5f7fa;
+  background-color: #f5f7fa;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.62)), url('/background/bk01.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
 }
 .app-container {
   min-height: 100vh;
 }
 .app-aside {
-  background: #fff;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border-right: 1px solid #e4e7ed;
   display: flex;
   flex-direction: column;
@@ -134,6 +141,8 @@ body {
 .nav-menu {
   border-right: none;
   flex: 1;
+  background: transparent;
+  --el-menu-bg-color: transparent;
 }
 .menu-divider {
   padding: 12px 20px 6px;
@@ -144,10 +153,18 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border-bottom: 1px solid #e4e7ed;
   padding: 0 24px;
   height: 60px;
+}
+/* 全局卡片毛玻璃 */
+.el-card {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 .header-title {
   font-size: 16px;
